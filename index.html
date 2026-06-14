@@ -1,0 +1,1130 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>艾泽拉斯装备数据库管理系统</title>
+  <style>
+    :root {
+      --bg: #f4f1ea;
+      --surface: #fffaf0;
+      --surface-2: #ece4d4;
+      --ink: #1d1b18;
+      --muted: #6b6255;
+      --line: #d8cdb9;
+      --accent: #b33c2e;
+      --accent-2: #28716b;
+      --focus: #d9a441;
+      --poor: #7b756b;
+      --common: #202020;
+      --uncommon: #24873b;
+      --rare: #2268bd;
+      --epic: #7a39b4;
+      --legendary: #c66a16;
+      --artifact: #b09739;
+      --shadow: 0 16px 42px rgba(58, 43, 21, .12);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Microsoft YaHei", "PingFang SC", Arial, sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at top left, rgba(217, 164, 65, .18), transparent 32rem),
+        linear-gradient(135deg, #f6f2ea 0%, #ece6da 44%, #f5eee1 100%);
+    }
+
+    button,
+    input,
+    select,
+    textarea {
+      font: inherit;
+    }
+
+    button {
+      border: 1px solid transparent;
+      cursor: pointer;
+    }
+
+    .app {
+      min-height: 100vh;
+      display: grid;
+      grid-template-rows: auto 1fr;
+    }
+
+    .topbar {
+      border-bottom: 1px solid var(--line);
+      background: rgba(255, 250, 240, .88);
+      backdrop-filter: blur(14px);
+    }
+
+    .topbar-inner {
+      width: min(1500px, calc(100vw - 32px));
+      margin: 0 auto;
+      padding: 18px 0 16px;
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      justify-content: space-between;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      min-width: 260px;
+    }
+
+    .crest {
+      width: 48px;
+      height: 48px;
+      border: 2px solid #a98b52;
+      background:
+        linear-gradient(145deg, rgba(179, 60, 46, .95), rgba(74, 50, 32, .92)),
+        repeating-linear-gradient(45deg, transparent, transparent 6px, rgba(255,255,255,.1) 6px, rgba(255,255,255,.1) 8px);
+      clip-path: polygon(50% 0, 92% 18%, 84% 78%, 50% 100%, 16% 78%, 8% 18%);
+      position: relative;
+      flex: 0 0 auto;
+      box-shadow: inset 0 0 0 4px rgba(255,255,255,.12), 0 8px 22px rgba(83, 50, 24, .22);
+    }
+
+    .crest::after {
+      content: "";
+      position: absolute;
+      inset: 11px 15px;
+      border-left: 4px solid #f3d482;
+      border-right: 4px solid #f3d482;
+      transform: skewX(-12deg);
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(20px, 2.2vw, 30px);
+      line-height: 1.1;
+      letter-spacing: 0;
+    }
+
+    .subtitle {
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+
+    .icon-btn,
+    .primary-btn,
+    .ghost-btn,
+    .danger-btn {
+      min-height: 38px;
+      border-radius: 8px;
+      padding: 0 13px;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      white-space: nowrap;
+      transition: transform .15s ease, border-color .15s ease, background .15s ease;
+    }
+
+    .icon-btn:focus-visible,
+    .primary-btn:focus-visible,
+    .ghost-btn:focus-visible,
+    .danger-btn:focus-visible,
+    input:focus-visible,
+    select:focus-visible,
+    textarea:focus-visible {
+      outline: 3px solid rgba(217, 164, 65, .35);
+      outline-offset: 2px;
+    }
+
+    .icon {
+      width: 18px;
+      height: 18px;
+      display: inline-grid;
+      place-items: center;
+      font-size: 18px;
+      line-height: 1;
+    }
+
+    .primary-btn {
+      color: #fff9ed;
+      background: var(--accent);
+      border-color: #9e3328;
+      box-shadow: 0 8px 18px rgba(179, 60, 46, .24);
+    }
+
+    .primary-btn:hover {
+      background: #9f3127;
+      transform: translateY(-1px);
+    }
+
+    .ghost-btn,
+    .icon-btn {
+      color: var(--ink);
+      background: rgba(255,255,255,.55);
+      border-color: var(--line);
+    }
+
+    .ghost-btn:hover,
+    .icon-btn:hover {
+      border-color: #baa878;
+      background: #fffdf8;
+    }
+
+    .danger-btn {
+      color: #fff8f3;
+      background: #8f2d2a;
+      border-color: #7f221f;
+    }
+
+    .main {
+      width: min(1500px, calc(100vw - 32px));
+      margin: 20px auto 32px;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 390px;
+      gap: 18px;
+      align-items: start;
+    }
+
+    .content,
+    .side {
+      min-width: 0;
+    }
+
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .stat {
+      min-height: 92px;
+      background: rgba(255, 250, 240, .86);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 15px;
+      box-shadow: 0 10px 26px rgba(58, 43, 21, .07);
+    }
+
+    .stat-label {
+      color: var(--muted);
+      font-size: 13px;
+      margin-bottom: 8px;
+    }
+
+    .stat-value {
+      font-size: 28px;
+      font-weight: 800;
+      line-height: 1;
+    }
+
+    .stat-note {
+      color: var(--muted);
+      font-size: 12px;
+      margin-top: 9px;
+    }
+
+    .panel {
+      background: rgba(255, 250, 240, .9);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+    }
+
+    .panel-head {
+      padding: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .panel-title {
+      margin: 0;
+      font-size: 17px;
+      line-height: 1.2;
+    }
+
+    .filters {
+      padding: 14px;
+      display: grid;
+      grid-template-columns: minmax(220px, 1.4fr) repeat(4, minmax(125px, .8fr));
+      gap: 10px;
+      align-items: end;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .field {
+      display: grid;
+      gap: 6px;
+    }
+
+    label {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    input,
+    select,
+    textarea {
+      width: 100%;
+      min-height: 38px;
+      border-radius: 8px;
+      border: 1px solid #cabda8;
+      color: var(--ink);
+      background: #fffdf8;
+      padding: 8px 10px;
+    }
+
+    textarea {
+      min-height: 78px;
+      resize: vertical;
+    }
+
+    .table-wrap {
+      overflow: auto;
+      max-height: calc(100vh - 305px);
+    }
+
+    table {
+      width: 100%;
+      min-width: 920px;
+      border-collapse: collapse;
+    }
+
+    th,
+    td {
+      padding: 12px 10px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      vertical-align: middle;
+    }
+
+    th {
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      color: #4f4438;
+      background: #efe6d6;
+      font-size: 12px;
+      user-select: none;
+      cursor: pointer;
+    }
+
+    td {
+      font-size: 14px;
+      background: rgba(255, 253, 248, .58);
+    }
+
+    tbody tr:hover td,
+    tbody tr.selected td {
+      background: #fff3d8;
+    }
+
+    .name-cell {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 230px;
+    }
+
+    .item-icon {
+      width: 38px;
+      height: 38px;
+      border-radius: 8px;
+      border: 1px solid rgba(0,0,0,.22);
+      background:
+        linear-gradient(145deg, rgba(255,255,255,.18), transparent),
+        var(--item-color, #8c7a5f);
+      box-shadow: inset 0 0 0 2px rgba(255,255,255,.16);
+      display: grid;
+      place-items: center;
+      color: #fff;
+      font-weight: 800;
+      flex: 0 0 auto;
+    }
+
+    .item-title {
+      font-weight: 800;
+      color: var(--item-color, var(--ink));
+    }
+
+    .item-meta,
+    .muted {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      min-height: 24px;
+      padding: 0 8px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, .52);
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    .actions {
+      display: flex;
+      gap: 6px;
+    }
+
+    .actions button {
+      width: 34px;
+      height: 34px;
+      padding: 0;
+      border-radius: 8px;
+      background: #fffdf8;
+      border: 1px solid var(--line);
+    }
+
+    .actions button:hover {
+      border-color: #b89d60;
+      background: #fff4da;
+    }
+
+    .form {
+      padding: 14px;
+      display: grid;
+      gap: 12px;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .full {
+      grid-column: 1 / -1;
+    }
+
+    .form-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 4px;
+    }
+
+    .form-actions .primary-btn,
+    .form-actions .ghost-btn,
+    .form-actions .danger-btn {
+      justify-content: center;
+    }
+
+    .empty {
+      padding: 34px 16px;
+      text-align: center;
+      color: var(--muted);
+      display: none;
+    }
+
+    .toast {
+      position: fixed;
+      right: 18px;
+      bottom: 18px;
+      background: #24201b;
+      color: #fff8ee;
+      border: 1px solid rgba(255,255,255,.16);
+      border-radius: 8px;
+      padding: 11px 14px;
+      box-shadow: 0 14px 36px rgba(0,0,0,.2);
+      opacity: 0;
+      transform: translateY(12px);
+      pointer-events: none;
+      transition: opacity .2s ease, transform .2s ease;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .file-input {
+      display: none;
+    }
+
+    @media (max-width: 1180px) {
+      .main {
+        grid-template-columns: 1fr;
+      }
+
+      .side {
+        order: -1;
+      }
+
+      .filters {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .field.search {
+        grid-column: 1 / -1;
+      }
+
+      .table-wrap {
+        max-height: none;
+      }
+    }
+
+    @media (max-width: 760px) {
+      .topbar-inner {
+        width: min(100% - 20px, 1500px);
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .main {
+        width: min(100% - 20px, 1500px);
+        margin-top: 12px;
+      }
+
+      .stats-row,
+      .filters,
+      .form-grid,
+      .form-actions {
+        grid-template-columns: 1fr;
+      }
+
+      .toolbar {
+        width: 100%;
+        justify-content: flex-start;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="topbar-inner">
+        <div class="brand">
+          <div class="crest" aria-hidden="true"></div>
+          <div>
+            <h1>艾泽拉斯装备数据库管理系统</h1>
+            <div class="subtitle">本地装备档案、掉落来源、属性评分与库存备注管理</div>
+          </div>
+        </div>
+        <div class="toolbar" aria-label="全局操作">
+          <button class="ghost-btn" id="seedBtn" type="button"><span class="icon">↻</span>示例数据</button>
+          <button class="ghost-btn" id="importBtn" type="button"><span class="icon">⇧</span>导入</button>
+          <button class="ghost-btn" id="exportBtn" type="button"><span class="icon">⇩</span>导出</button>
+          <button class="danger-btn" id="clearBtn" type="button"><span class="icon">×</span>清空</button>
+        </div>
+      </div>
+    </header>
+
+    <main class="main">
+      <section class="content">
+        <div class="stats-row" aria-label="数据库统计">
+          <div class="stat">
+            <div class="stat-label">装备总数</div>
+            <div class="stat-value" id="totalCount">0</div>
+            <div class="stat-note">当前数据库记录</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">平均装等</div>
+            <div class="stat-value" id="avgIlvl">0</div>
+            <div class="stat-note">按全部装备计算</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">史诗及以上</div>
+            <div class="stat-value" id="epicCount">0</div>
+            <div class="stat-note">紫色、橙色、神器</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">最高评分</div>
+            <div class="stat-value" id="topScore">0</div>
+            <div class="stat-note" id="topScoreName">暂无装备</div>
+          </div>
+        </div>
+
+        <section class="panel">
+          <div class="panel-head">
+            <h2 class="panel-title">装备列表</h2>
+            <span class="muted" id="visibleCount">显示 0 条</span>
+          </div>
+          <div class="filters">
+            <div class="field search">
+              <label for="searchInput">搜索</label>
+              <input id="searchInput" type="search" placeholder="装备名、来源、副本、备注">
+            </div>
+            <div class="field">
+              <label for="slotFilter">部位</label>
+              <select id="slotFilter"></select>
+            </div>
+            <div class="field">
+              <label for="rarityFilter">品质</label>
+              <select id="rarityFilter"></select>
+            </div>
+            <div class="field">
+              <label for="typeFilter">类型</label>
+              <select id="typeFilter"></select>
+            </div>
+            <div class="field">
+              <label for="minIlvl">最低装等</label>
+              <input id="minIlvl" type="number" min="1" step="1" placeholder="不限">
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th data-sort="name">装备</th>
+                  <th data-sort="slot">部位</th>
+                  <th data-sort="rarity">品质</th>
+                  <th data-sort="ilvl">装等</th>
+                  <th data-sort="type">类型</th>
+                  <th data-sort="source">来源</th>
+                  <th data-sort="score">评分</th>
+                  <th>操作</th>
+                </tr>
+              </thead>
+              <tbody id="itemRows"></tbody>
+            </table>
+            <div class="empty" id="emptyState">没有匹配的装备。调整筛选条件，或在右侧新增一件装备。</div>
+          </div>
+        </section>
+      </section>
+
+      <aside class="side">
+        <section class="panel">
+          <div class="panel-head">
+            <h2 class="panel-title" id="formTitle">新增装备</h2>
+            <button class="icon-btn" id="newBtn" type="button" title="新建记录" aria-label="新建记录"><span class="icon">＋</span></button>
+          </div>
+          <form class="form" id="itemForm">
+            <input type="hidden" id="itemId">
+            <div class="field">
+              <label for="nameInput">装备名称</label>
+              <input id="nameInput" required placeholder="例如：霜火法杖">
+            </div>
+            <div class="form-grid">
+              <div class="field">
+                <label for="slotInput">部位</label>
+                <select id="slotInput" required></select>
+              </div>
+              <div class="field">
+                <label for="rarityInput">品质</label>
+                <select id="rarityInput" required></select>
+              </div>
+              <div class="field">
+                <label for="ilvlInput">装等</label>
+                <input id="ilvlInput" type="number" min="1" max="999" required>
+              </div>
+              <div class="field">
+                <label for="typeInput">类型</label>
+                <select id="typeInput" required></select>
+              </div>
+              <div class="field">
+                <label for="scoreInput">评分</label>
+                <input id="scoreInput" type="number" min="0" max="100" step="1" required>
+              </div>
+              <div class="field">
+                <label for="bindInput">绑定</label>
+                <select id="bindInput">
+                  <option>拾取后绑定</option>
+                  <option>装备后绑定</option>
+                  <option>战网绑定</option>
+                  <option>不绑定</option>
+                </select>
+              </div>
+              <div class="field full">
+                <label for="statsInput">核心属性</label>
+                <input id="statsInput" placeholder="智力 +86，急速 +42，精通 +37">
+              </div>
+              <div class="field full">
+                <label for="sourceInput">来源</label>
+                <input id="sourceInput" placeholder="团队副本、地下城、制造、声望、世界掉落">
+              </div>
+              <div class="field full">
+                <label for="noteInput">备注</label>
+                <textarea id="noteInput" placeholder="适用职业、套装效果、替换建议等"></textarea>
+              </div>
+            </div>
+            <div class="form-actions">
+              <button class="primary-btn" type="submit"><span class="icon">✓</span>保存装备</button>
+              <button class="ghost-btn" id="resetBtn" type="button"><span class="icon">↺</span>重置表单</button>
+            </div>
+          </form>
+        </section>
+      </aside>
+    </main>
+  </div>
+
+  <input class="file-input" id="fileInput" type="file" accept="application/json">
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script>
+    const storageKey = "azeroth-equipment-db-v1";
+
+    const slots = ["头部", "颈部", "肩部", "背部", "胸部", "手腕", "手部", "腰部", "腿部", "脚部", "戒指", "饰品", "主手", "副手", "远程", "双手"];
+    const rarities = ["普通", "优秀", "精良", "史诗", "传说", "神器"];
+    const types = ["布甲", "皮甲", "锁甲", "板甲", "匕首", "单手剑", "双手剑", "法杖", "盾牌", "戒指", "饰品", "弓", "枪械", "魔杖", "其他"];
+
+    const rarityMeta = {
+      "普通": { color: "var(--common)", rank: 1 },
+      "优秀": { color: "var(--uncommon)", rank: 2 },
+      "精良": { color: "var(--rare)", rank: 3 },
+      "史诗": { color: "var(--epic)", rank: 4 },
+      "传说": { color: "var(--legendary)", rank: 5 },
+      "神器": { color: "var(--artifact)", rank: 6 }
+    };
+
+    const sampleItems = [
+      {
+        id: crypto.randomUUID(),
+        name: "炎魔之手",
+        slot: "手部",
+        rarity: "史诗",
+        ilvl: 245,
+        type: "板甲",
+        score: 91,
+        bind: "拾取后绑定",
+        stats: "力量 +94，暴击 +48，急速 +41",
+        source: "熔火之心 · 拉格纳罗斯",
+        note: "适合输出战士、惩戒骑士。"
+      },
+      {
+        id: crypto.randomUUID(),
+        name: "星界裂片坠饰",
+        slot: "颈部",
+        rarity: "精良",
+        ilvl: 213,
+        type: "其他",
+        score: 77,
+        bind: "装备后绑定",
+        stats: "智力 +61，精通 +33，全能 +29",
+        source: "达拉然珠宝加工",
+        note: "过渡项链，可批量制造。"
+      },
+      {
+        id: crypto.randomUUID(),
+        name: "暮光守卫胸铠",
+        slot: "胸部",
+        rarity: "传说",
+        ilvl: 291,
+        type: "锁甲",
+        score: 98,
+        bind: "拾取后绑定",
+        stats: "敏捷 +132，暴击 +67，精通 +61，插槽 +1",
+        source: "暮光堡垒 · 古加尔",
+        note: "猎人和增强萨满的毕业级胸甲。"
+      },
+      {
+        id: crypto.randomUUID(),
+        name: "奥术回响法杖",
+        slot: "双手",
+        rarity: "史诗",
+        ilvl: 264,
+        type: "法杖",
+        score: 89,
+        bind: "拾取后绑定",
+        stats: "智力 +118，急速 +58，暴击 +44",
+        source: "冰冠堡垒 · 普崔塞德教授",
+        note: "法师、术士、牧师均可使用。"
+      },
+      {
+        id: crypto.randomUUID(),
+        name: "远古龙鳞护符",
+        slot: "饰品",
+        rarity: "神器",
+        ilvl: 310,
+        type: "饰品",
+        score: 100,
+        bind: "战网绑定",
+        stats: "主属性 +180，触发：龙魂祝福",
+        source: "资料片主线成就",
+        note: "账号级收藏品，保留不可分解。"
+      }
+    ];
+
+    let items = [];
+    let selectedId = "";
+    let sortState = { key: "ilvl", direction: "desc" };
+
+    const els = {
+      rows: document.querySelector("#itemRows"),
+      empty: document.querySelector("#emptyState"),
+      visibleCount: document.querySelector("#visibleCount"),
+      totalCount: document.querySelector("#totalCount"),
+      avgIlvl: document.querySelector("#avgIlvl"),
+      epicCount: document.querySelector("#epicCount"),
+      topScore: document.querySelector("#topScore"),
+      topScoreName: document.querySelector("#topScoreName"),
+      search: document.querySelector("#searchInput"),
+      slotFilter: document.querySelector("#slotFilter"),
+      rarityFilter: document.querySelector("#rarityFilter"),
+      typeFilter: document.querySelector("#typeFilter"),
+      minIlvl: document.querySelector("#minIlvl"),
+      form: document.querySelector("#itemForm"),
+      formTitle: document.querySelector("#formTitle"),
+      itemId: document.querySelector("#itemId"),
+      name: document.querySelector("#nameInput"),
+      slot: document.querySelector("#slotInput"),
+      rarity: document.querySelector("#rarityInput"),
+      ilvl: document.querySelector("#ilvlInput"),
+      type: document.querySelector("#typeInput"),
+      score: document.querySelector("#scoreInput"),
+      bind: document.querySelector("#bindInput"),
+      stats: document.querySelector("#statsInput"),
+      source: document.querySelector("#sourceInput"),
+      note: document.querySelector("#noteInput"),
+      toast: document.querySelector("#toast"),
+      file: document.querySelector("#fileInput")
+    };
+
+    function fillSelect(select, options, includeAll) {
+      select.innerHTML = "";
+      if (includeAll) {
+        const all = document.createElement("option");
+        all.value = "";
+        all.textContent = "全部";
+        select.appendChild(all);
+      }
+      options.forEach((value) => {
+        const option = document.createElement("option");
+        option.value = value;
+        option.textContent = value;
+        select.appendChild(option);
+      });
+    }
+
+    function loadItems() {
+      try {
+        const saved = JSON.parse(localStorage.getItem(storageKey) || "[]");
+        items = Array.isArray(saved) && saved.length ? saved : sampleItems;
+        if (!Array.isArray(saved) || !saved.length) {
+          saveItems(false);
+        }
+      } catch {
+        items = sampleItems;
+        saveItems(false);
+      }
+    }
+
+    function saveItems(showMessage = true) {
+      localStorage.setItem(storageKey, JSON.stringify(items));
+      if (showMessage) showToast("数据已保存到本地浏览器");
+    }
+
+    function showToast(message) {
+      els.toast.textContent = message;
+      els.toast.classList.add("show");
+      clearTimeout(showToast.timer);
+      showToast.timer = setTimeout(() => els.toast.classList.remove("show"), 2200);
+    }
+
+    function rarityColor(rarity) {
+      return (rarityMeta[rarity] || rarityMeta["普通"]).color;
+    }
+
+    function normalize(value) {
+      return String(value || "").trim().toLowerCase();
+    }
+
+    function getFilteredItems() {
+      const keyword = normalize(els.search.value);
+      const slot = els.slotFilter.value;
+      const rarity = els.rarityFilter.value;
+      const type = els.typeFilter.value;
+      const minIlvl = Number(els.minIlvl.value || 0);
+
+      return items
+        .filter((item) => {
+          const text = normalize([item.name, item.slot, item.rarity, item.type, item.source, item.stats, item.note].join(" "));
+          return (!keyword || text.includes(keyword))
+            && (!slot || item.slot === slot)
+            && (!rarity || item.rarity === rarity)
+            && (!type || item.type === type)
+            && (!minIlvl || Number(item.ilvl) >= minIlvl);
+        })
+        .sort((a, b) => {
+          const key = sortState.key;
+          let left = a[key];
+          let right = b[key];
+          if (key === "rarity") {
+            left = rarityMeta[a.rarity]?.rank || 0;
+            right = rarityMeta[b.rarity]?.rank || 0;
+          }
+          if (["ilvl", "score"].includes(key)) {
+            left = Number(left) || 0;
+            right = Number(right) || 0;
+          } else {
+            left = String(left || "");
+            right = String(right || "");
+          }
+          const result = left > right ? 1 : left < right ? -1 : 0;
+          return sortState.direction === "asc" ? result : -result;
+        });
+    }
+
+    function renderStats() {
+      const total = items.length;
+      const avg = total ? Math.round(items.reduce((sum, item) => sum + Number(item.ilvl || 0), 0) / total) : 0;
+      const epicPlus = items.filter((item) => (rarityMeta[item.rarity]?.rank || 0) >= 4).length;
+      const best = [...items].sort((a, b) => Number(b.score || 0) - Number(a.score || 0))[0];
+
+      els.totalCount.textContent = total;
+      els.avgIlvl.textContent = avg;
+      els.epicCount.textContent = epicPlus;
+      els.topScore.textContent = best ? best.score : 0;
+      els.topScoreName.textContent = best ? best.name : "暂无装备";
+    }
+
+    function renderRows() {
+      const filtered = getFilteredItems();
+      els.rows.innerHTML = "";
+      els.visibleCount.textContent = `显示 ${filtered.length} 条`;
+      els.empty.style.display = filtered.length ? "none" : "block";
+
+      filtered.forEach((item) => {
+        const tr = document.createElement("tr");
+        tr.className = item.id === selectedId ? "selected" : "";
+        tr.innerHTML = `
+          <td>
+            <div class="name-cell" style="--item-color: ${rarityColor(item.rarity)}">
+              <div class="item-icon">${escapeHtml(item.slot.slice(0, 1))}</div>
+              <div>
+                <div class="item-title">${escapeHtml(item.name)}</div>
+                <div class="item-meta">${escapeHtml(item.stats || "未填写属性")}</div>
+              </div>
+            </div>
+          </td>
+          <td><span class="badge">${escapeHtml(item.slot)}</span></td>
+          <td style="color: ${rarityColor(item.rarity)}; font-weight: 800">${escapeHtml(item.rarity)}</td>
+          <td>${Number(item.ilvl) || 0}</td>
+          <td>${escapeHtml(item.type)}</td>
+          <td>${escapeHtml(item.source || "未记录")}</td>
+          <td><strong>${Number(item.score) || 0}</strong></td>
+          <td>
+            <div class="actions">
+              <button type="button" title="编辑" aria-label="编辑" data-action="edit" data-id="${item.id}">✎</button>
+              <button type="button" title="复制" aria-label="复制" data-action="copy" data-id="${item.id}">⧉</button>
+              <button type="button" title="删除" aria-label="删除" data-action="delete" data-id="${item.id}">×</button>
+            </div>
+          </td>
+        `;
+        tr.addEventListener("click", (event) => {
+          if (!event.target.closest("button")) editItem(item.id);
+        });
+        els.rows.appendChild(tr);
+      });
+
+      renderStats();
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    function formToItem() {
+      return {
+        id: els.itemId.value || crypto.randomUUID(),
+        name: els.name.value.trim(),
+        slot: els.slot.value,
+        rarity: els.rarity.value,
+        ilvl: Number(els.ilvl.value),
+        type: els.type.value,
+        score: Number(els.score.value),
+        bind: els.bind.value,
+        stats: els.stats.value.trim(),
+        source: els.source.value.trim(),
+        note: els.note.value.trim()
+      };
+    }
+
+    function setForm(item) {
+      els.itemId.value = item?.id || "";
+      els.name.value = item?.name || "";
+      els.slot.value = item?.slot || slots[0];
+      els.rarity.value = item?.rarity || "精良";
+      els.ilvl.value = item?.ilvl || 200;
+      els.type.value = item?.type || types[0];
+      els.score.value = item?.score || 75;
+      els.bind.value = item?.bind || "拾取后绑定";
+      els.stats.value = item?.stats || "";
+      els.source.value = item?.source || "";
+      els.note.value = item?.note || "";
+      els.formTitle.textContent = item ? "编辑装备" : "新增装备";
+      selectedId = item?.id || "";
+      renderRows();
+    }
+
+    function editItem(id) {
+      const item = items.find((entry) => entry.id === id);
+      if (!item) return;
+      setForm(item);
+      els.name.focus();
+    }
+
+    function copyItem(id) {
+      const item = items.find((entry) => entry.id === id);
+      if (!item) return;
+      const copy = {
+        ...item,
+        id: crypto.randomUUID(),
+        name: `${item.name} 副本`
+      };
+      items.unshift(copy);
+      selectedId = copy.id;
+      saveItems();
+      setForm(copy);
+      showToast("已复制装备记录");
+    }
+
+    function deleteItem(id) {
+      const item = items.find((entry) => entry.id === id);
+      if (!item) return;
+      if (!confirm(`确定删除「${item.name}」吗？`)) return;
+      items = items.filter((entry) => entry.id !== id);
+      if (selectedId === id) setForm(null);
+      saveItems();
+      renderRows();
+      showToast("装备已删除");
+    }
+
+    function exportItems() {
+      const blob = new Blob([JSON.stringify(items, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `azeroth-equipment-${new Date().toISOString().slice(0, 10)}.json`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+      showToast("JSON 文件已导出");
+    }
+
+    function importItems(file) {
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          const imported = JSON.parse(reader.result);
+          if (!Array.isArray(imported)) throw new Error("导入文件必须是数组");
+          items = imported.map((item) => ({
+            id: item.id || crypto.randomUUID(),
+            name: item.name || "未命名装备",
+            slot: slots.includes(item.slot) ? item.slot : slots[0],
+            rarity: rarities.includes(item.rarity) ? item.rarity : "普通",
+            ilvl: Number(item.ilvl) || 1,
+            type: types.includes(item.type) ? item.type : "其他",
+            score: Number(item.score) || 0,
+            bind: item.bind || "拾取后绑定",
+            stats: item.stats || "",
+            source: item.source || "",
+            note: item.note || ""
+          }));
+          selectedId = "";
+          saveItems();
+          setForm(null);
+          renderRows();
+          showToast("导入完成");
+        } catch (error) {
+          alert(`导入失败：${error.message}`);
+        }
+      };
+      reader.readAsText(file, "utf-8");
+    }
+
+    function wireEvents() {
+      [els.search, els.slotFilter, els.rarityFilter, els.typeFilter, els.minIlvl].forEach((control) => {
+        control.addEventListener("input", renderRows);
+        control.addEventListener("change", renderRows);
+      });
+
+      document.querySelectorAll("th[data-sort]").forEach((th) => {
+        th.addEventListener("click", () => {
+          const key = th.dataset.sort;
+          sortState = {
+            key,
+            direction: sortState.key === key && sortState.direction === "asc" ? "desc" : "asc"
+          };
+          renderRows();
+        });
+      });
+
+      els.rows.addEventListener("click", (event) => {
+        const button = event.target.closest("button[data-action]");
+        if (!button) return;
+        const id = button.dataset.id;
+        const action = button.dataset.action;
+        if (action === "edit") editItem(id);
+        if (action === "copy") copyItem(id);
+        if (action === "delete") deleteItem(id);
+      });
+
+      els.form.addEventListener("submit", (event) => {
+        event.preventDefault();
+        const item = formToItem();
+        const index = items.findIndex((entry) => entry.id === item.id);
+        if (index >= 0) {
+          items[index] = item;
+        } else {
+          items.unshift(item);
+        }
+        selectedId = item.id;
+        saveItems();
+        setForm(item);
+      });
+
+      document.querySelector("#newBtn").addEventListener("click", () => setForm(null));
+      document.querySelector("#resetBtn").addEventListener("click", () => setForm(selectedId ? items.find((item) => item.id === selectedId) : null));
+      document.querySelector("#seedBtn").addEventListener("click", () => {
+        if (!confirm("使用示例数据会覆盖当前本地数据库，是否继续？")) return;
+        items = sampleItems.map((item) => ({ ...item, id: crypto.randomUUID() }));
+        selectedId = "";
+        saveItems();
+        setForm(null);
+        renderRows();
+      });
+      document.querySelector("#clearBtn").addEventListener("click", () => {
+        if (!confirm("确定清空全部装备记录吗？此操作只影响本浏览器。")) return;
+        items = [];
+        selectedId = "";
+        saveItems();
+        setForm(null);
+        renderRows();
+      });
+      document.querySelector("#exportBtn").addEventListener("click", exportItems);
+      document.querySelector("#importBtn").addEventListener("click", () => els.file.click());
+      els.file.addEventListener("change", () => {
+        const file = els.file.files[0];
+        if (file) importItems(file);
+        els.file.value = "";
+      });
+    }
+
+    fillSelect(els.slotFilter, slots, true);
+    fillSelect(els.rarityFilter, rarities, true);
+    fillSelect(els.typeFilter, types, true);
+    fillSelect(els.slot, slots, false);
+    fillSelect(els.rarity, rarities, false);
+    fillSelect(els.type, types, false);
+    loadItems();
+    setForm(null);
+    wireEvents();
+    renderRows();
+  </script>
+</body>
+</html>
